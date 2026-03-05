@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 import { Book,
   Users, 
   Globe, 
@@ -644,14 +645,30 @@ content += `${c.content}\n\n`;
 
     try {
       const isCapacitor = !!(window as any).Capacitor;
-      const isAndroid = isCapacitor && (window as any).Capacitor.getPlatform() === 'android';
+      const platform = isCapacitor ? (window as any).Capacitor.getPlatform() : 'web';
 
-      if (isAndroid) {
+      if (platform === 'android' || platform === 'ios') {
+        const blob = new Blob([content], { type: 'text/markdown' });
+        const base64 = await blob.arrayBuffer().then(buffer => btoa(String.fromCharCode(...new Uint8Array(buffer))));
         await Filesystem.writeFile({
           path: fileName,
-          data: content,
-          directory: Directory.Downloads,
+          data: base64,
+          directory: Directory.Cache,
           encoding: Encoding.UTF8
+        });
+        const uri = await Filesystem.getUri({
+          path: fileName,
+          directory: Directory.Cache
+        });
+        await Share.share({
+          title: fileName,
+          text: content,
+          url: uri.uri,
+          dialogTitle: '导出故事'
+        });
+        await Filesystem.deleteFile({
+          path: fileName,
+          directory: Directory.Cache
         });
       } else {
         const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });

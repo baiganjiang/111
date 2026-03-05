@@ -10,45 +10,45 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '22'
-        cache: 'npm'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
 
-    - name: Install Dependencies
-      run: npm install
+      - name: Install Dependencies
+        run: npm install
 
-    - name: Install Capacitor Plugins
-      run: npm install @capacitor/filesystem
+      - name: Install Capacitor Plugins
+        run: npm install @capacitor/filesystem @capacitor/share
 
-    - name: Build Web App
-      env:
-        VITE_API_BASE_URL: 'https://ais-pre-54y535iwyabmane472jtg3-399767249549.europe-west2.run.app'
-      run: npm run build
+      - name: Build Web App
+        env:
+          VITE_API_BASE_URL: 'https://ais-pre-54y535iwyabmane472jtg3-399767249549.europe-west2.run.app'
+        run: npm run build
 
-    - name: Setup Java
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'zulu'
-        java-version: '21'
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '21'
 
-    - name: Add Android Platform
-      run: |
-        npx cap add android
-        npx cap sync
+      - name: Add Android Platform
+        run: |
+          npx cap add android
+          npx cap sync
 
-    - name: Build APK
-      run: |
-        cd android
-        chmod +x gradlew
-        ./gradlew assembleDebug
+      - name: Build APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
 
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: app-debug.apk
-        path: android/app/build/outputs/apk/debug/app-debug.apk
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug.apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
