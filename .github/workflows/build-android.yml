@@ -3,7 +3,7 @@ name: Build Android APK
 on:
   push:
     branches: [ main ]
-  workflow_dispatch: # 允许手动触发打包
+  workflow_dispatch:
 
 jobs:
   build:
@@ -21,6 +21,9 @@ jobs:
 
     - name: Install Dependencies
       run: npm install
+
+    - name: Install Capacitor Plugins
+      run: npm install @capacitor/filesystem
 
     - name: Build Web App
       env:

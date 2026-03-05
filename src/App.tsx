@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Book, 
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { Book,
   Users, 
   Globe, 
   Plus, 
@@ -608,7 +608,7 @@ export default function App() {
     }
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (selectedExportChapters.length === 0 || !currentStory) return;
     
     const chaptersToExport = chapters
@@ -637,22 +637,50 @@ export default function App() {
       if (exportOptions.summaries && c.summary) {
         content += `> **摘要**：${c.summary}\n\n`;
       }
-      content += `${c.content}\n\n`;
+content += `${c.content}\n\n`;
     });
-    
-    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${currentStory.title}_导出.md`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    setIsExportModalOpen(false);
+
+    const fileName = `${currentStory.title}_导出.md`;
+
+    try {
+      const isCapacitor = !!(window as any).Capacitor;
+      const isAndroid = isCapacitor && (window as any).Capacitor.getPlatform() === 'android';
+
+      if (isAndroid) {
+        await Filesystem.writeFile({
+          path: fileName,
+          data: content,
+          directory: Directory.Downloads,
+          encoding: Encoding.UTF8
+        });
+      } else {
+        const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+    } catch (error) {
+      console.error('Export failed:', error);
+      const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+setIsExportModalOpen(false);
   };
 
-  const handleGenerateStoryFromOutline = async () => {
+const handleGenerateStoryFromOutline = async () => {
     if (!currentStory || isGenerating) return;
     setIsGenerating(true);
     try {
