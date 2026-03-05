@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
-import { Share } from '@capacitor/share';
 import { Book,
   Users, 
   Globe, 
@@ -644,34 +643,23 @@ content += `${c.content}\n\n`;
     const fileName = `${currentStory.title}_导出.md`;
 
     try {
-      const isCapacitor = !!(window as any).Capacitor;
-      const platform = isCapacitor ? (window as any).Capacitor.getPlatform() : 'web';
+      const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
 
-      if (platform === 'android' || platform === 'ios') {
-        const blob = new Blob([content], { type: 'text/markdown' });
-        const base64 = await blob.arrayBuffer().then(buffer => btoa(String.fromCharCode(...new Uint8Array(buffer))));
-        await Filesystem.writeFile({
-          path: fileName,
-          data: base64,
-          directory: Directory.Cache,
-          encoding: Encoding.UTF8
-        });
-        const uri = await Filesystem.getUri({
-          path: fileName,
-          directory: Directory.Cache
-        });
-        await Share.share({
-          title: fileName,
-          text: content,
-          url: uri.uri,
-          dialogTitle: '导出故事'
-        });
-        await Filesystem.deleteFile({
-          path: fileName,
-          directory: Directory.Cache
-        });
+      if (navigator.share && /android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+        const file = new File([blob], fileName, { type: 'text/markdown' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            title: fileName,
+            text: content,
+            files: [file]
+          });
+        } else {
+          await navigator.share({
+            title: fileName,
+            text: content
+          });
+        }
       } else {
-        const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -681,17 +669,18 @@ content += `${c.content}\n\n`;
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       }
-    } catch (error) {
-      console.error('Export failed:', error);
-      const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        console.error('Export failed:', error);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
     }
 
 setIsExportModalOpen(false);
