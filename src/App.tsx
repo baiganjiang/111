@@ -640,26 +640,21 @@ export default function App() {
 content += `${c.content}\n\n`;
     });
 
-    const fileName = `${currentStory.title}_导出.md`;
+const fileName = `${currentStory.title}_导出.md`;
 
     try {
-      const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+      const isAndroid = !!(window as any).Capacitor && (window as any).Capacitor.getPlatform() === 'android';
 
-      if (navigator.share && /android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-        const file = new File([blob], fileName, { type: 'text/markdown' });
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            title: fileName,
-            text: content,
-            files: [file]
-          });
-        } else {
-          await navigator.share({
-            title: fileName,
-            text: content
-          });
-        }
+      if (isAndroid) {
+        await Filesystem.writeFile({
+          path: fileName,
+          data: content,
+          directory: Directory.Downloads,
+          encoding: Encoding.UTF8
+        });
+        alert(`文件已保存到 Downloads/${fileName}`);
       } else {
+        const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -669,21 +664,20 @@ content += `${c.content}\n\n`;
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       }
-    } catch (error: any) {
-      if (error.name !== 'AbortError') {
-        console.error('Export failed:', error);
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }
+    } catch (error) {
+      console.error('Export failed:', error);
+      const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     }
 
-setIsExportModalOpen(false);
+    setIsExportModalOpen(false);
   };
 
 const handleGenerateStoryFromOutline = async () => {
